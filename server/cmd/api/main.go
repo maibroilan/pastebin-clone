@@ -33,6 +33,7 @@ func main() {
 	// r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(handlers.BodyLimit(1 << 20))
 
 	// 📦 API routes
 	r.Route("/pastes", func(r chi.Router) {

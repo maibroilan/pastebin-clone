@@ -16,6 +16,8 @@ var (
 	ErrInvalidSlug   = errors.New("invalid slug")
 	ErrSlugGenFailed = errors.New("couldn't find a unique slug after 5 tries")
 	ErrBadRequest    = errors.New("bad request")
+	ErrNotAuthorized = errors.New("not authorized")
+	ErrWrongPassword = errors.New("wrong password")
 )
 
 type PasteService struct {
@@ -74,12 +76,12 @@ func (s *PasteService) Create(ctx context.Context, paste model.CreatePasteReques
 	return nil, ErrSlugGenFailed
 }
 
-func (s *PasteService) Get(ctx context.Context, slug string) (*model.Paste, error) {
-	if slug == "" {
+func (s *PasteService) Get(ctx context.Context, req model.GetPasteRequest) (*model.Paste, error) {
+	if req.Slug == "" {
 		return nil, ErrInvalidSlug
 	}
 
-	paste, err := s.Queries.GetPaste(ctx, slug)
+	paste, err := s.Queries.GetPaste(ctx, req.Slug)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrPasteNotFound
@@ -91,8 +93,18 @@ func (s *PasteService) Get(ctx context.Context, slug string) (*model.Paste, erro
 		return nil, ErrPasteExpired
 	}
 
+	if paste.PasswordHash != nil {
+		if req.Password == "" {
+			return nil, ErrNotAuthorized
+		}
+
+		if !CompareHashes(*paste.PasswordHash, req.Password) {
+			return nil, ErrWrongPassword
+		}
+	}
+
 	return &model.Paste{
-		Slug:      slug,
+		Slug:      req.Slug,
 		Content:   paste.Content,
 		ExpiresAt: paste.ExpiresAt,
 	}, nil

@@ -23,7 +23,12 @@ type CreatePasteResponse struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-type CreateGetResponse struct {
+type GetPasteRequest struct {
+	Slug     string `json:"slug"`
+	Password string `json:"password"`
+}
+
+type GetPasteResponse struct {
 	Content   string    `json:"content"`
 	ExpiresAt time.Time `json:"expires_at"`
 }

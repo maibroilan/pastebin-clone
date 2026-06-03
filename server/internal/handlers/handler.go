@@ -21,6 +21,12 @@ func NewPasteHandler(s *service.PasteService) *PasteHandler {
 }
 
 func (h *PasteHandler) CreatePaste(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(
+		w,
+		r.Body,
+		1<<20, // 1 MiB
+	)
+
 	var req model.CreatePasteRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -48,10 +54,14 @@ func (h *PasteHandler) CreatePaste(w http.ResponseWriter, r *http.Request) {
 
 func (h *PasteHandler) GetPaste(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
+	password := r.Header.Get("X-Paste-Password")
 
 	paste, err := h.service.Get(
 		r.Context(),
-		slug,
+		model.GetPasteRequest{
+			Slug:     slug,
+			Password: password,
+		},
 	)
 
 	if err != nil {
@@ -59,7 +69,7 @@ func (h *PasteHandler) GetPaste(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, 200, model.CreateGetResponse{
+	WriteJSON(w, 200, model.GetPasteResponse{
 		Content:   paste.Content,
 		ExpiresAt: paste.ExpiresAt.Time,
 	})

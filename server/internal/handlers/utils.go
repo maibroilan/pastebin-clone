@@ -33,6 +33,12 @@ func handleError(w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrBadRequest):
 		http.Error(w, "bad request", http.StatusBadRequest)
 
+	case errors.Is(err, service.ErrNotAuthorized):
+		http.Error(w, "not authorized", http.StatusUnauthorized)
+
+	case errors.Is(err, service.ErrWrongPassword):
+		http.Error(w, "wrong password", http.StatusUnauthorized)
+
 	default:
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
