@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS pastes (
+    id BIGSERIAL PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    content TEXT NOT NULL,
+    password_hash TEXT,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
