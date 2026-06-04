@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/maibroilan/pastebin-clone/server/internal/db"
 	"github.com/maibroilan/pastebin-clone/server/internal/handlers"
@@ -34,6 +35,20 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(handlers.BodyLimit(1 << 20))
+	r.Use(cors.Handler(cors.Options{
+		// List of allowed origins. Use "*" for development only.
+		AllowedOrigins: []string{"http://localhost:5173"}, // Your SvelteKit dev server
+		// Allowed HTTP methods
+		AllowedMethods: []string{"GET", "POST"},
+		// Allowed headers (include Authorization for tokens, Content-Type for JSON)
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Paste-Password"},
+		// Headers the browser is allowed to access
+		ExposedHeaders: []string{"Link"},
+		// Allow cookies to be sent/received
+		AllowCredentials: false,
+		// Cache preflight request result for 5 minutes
+		MaxAge: 300,
+	}))
 
 	// 📦 API routes
 	r.Route("/pastes", func(r chi.Router) {
