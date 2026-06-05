@@ -10,7 +10,9 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
 
 	if (!res.ok) {
 		console.log(res.status);
-		throw new Error('Request failed');
+		const body = await res.text();
+
+		throw new Error(`${res.status}: ${body}`);
 	}
 
 	return res.json();
