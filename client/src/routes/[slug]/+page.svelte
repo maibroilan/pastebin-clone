@@ -1,12 +1,14 @@
 <script lang="ts">
-	let { data } = $props();
+	import { enhance } from '$app/forms';
 
-	let paste = $derived(data.paste);
-	let state = $derived(data.state);
-	let error = $derived(data.message);
+	let { data, form } = $props();
+
+	let state = $derived(form?.state ?? data.state);
+	let paste = $derived(form?.paste ?? data.paste);
+	let error = $derived(form?.message ?? data.message);
 </script>
 
-{#if error}
+{#if error || state === 'wrong_password'}
 	<p class="error">{error}</p>
 {/if}
 
@@ -15,7 +17,9 @@
 	<pre>{paste?.content}</pre>
 {/if}
 
-{#if state === 'needs_password'}
-	<p>need password</p>
-	<!-- TO BE IMPLEMENTED LATER -->
+{#if state === 'needs_password' || state === 'wrong_password'}
+	<form method="POST" action="?/unlock" use:enhance>
+		<input name="password" type="password" />
+		<button>Unlock</button>
+	</form>
 {/if}
