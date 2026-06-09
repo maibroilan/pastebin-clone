@@ -8,7 +8,7 @@ const SIMULATE_FAIL = false;
 const SAMPLE_ERROR: apiError = {
 	ok: false,
 	status: 469,
-	message: 'error testing is on'
+	message: 'Error testing is ON !'
 };
 
 export async function createPaste(
@@ -39,8 +39,8 @@ export async function createPaste(
 
 	return {
 		ok: true,
-		slug: respjs.slug,
-		expires_at: respjs.expires_at
+		status: 200,
+		slug: respjs.slug
 	};
 }
 

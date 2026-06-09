@@ -1,20 +1,17 @@
 <script lang="ts">
+	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import PasteCreationForm from '$lib/components/PasteCreationForm.svelte';
+	import SuccessMessage from '$lib/components/SuccessMessage.svelte';
 
 	let { form } = $props();
-
-	let dismissed = $state(false);
 </script>
 
-{#if form?.message && !dismissed}
-	<p class="error">{form.message}</p>
-	<button type="button" onclick={() => (dismissed = true)} aria-label="Dismiss error"> × </button>
+{#if form?.message}
+	<ErrorMessage error={form.message} />
 {/if}
 
 {#if form?.slug}
-	<p>Paste created!</p>
-	<p>Slug: {form.slug}</p>
-	<button type="button" onclick={() => (dismissed = true)} aria-label="Dismiss error"> × </button>
+	<SuccessMessage slug={form.slug} />
 {/if}
 
 <PasteCreationForm />

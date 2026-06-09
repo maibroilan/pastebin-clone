@@ -1,33 +1,37 @@
 import { getPaste } from '$lib/api/pastes.js';
 
-export const load = async ({ params }) => {
-	const res = await getPaste(params.slug);
+async function resolvePaste(
+	slug: string,
+	password?: string,
+	wrongPasswordState = 'needs_password'
+) {
+	const res = await getPaste(slug, password);
 
 	if (res.status === 401) {
 		return {
-			state: 'needs_password'
-			// message: 'password needed'
+			state: wrongPasswordState,
+			message: wrongPasswordState === 'wrong_password' ? 'Wrong Password !' : undefined
 		};
 	}
 
 	if (res.status === 404) {
 		return {
 			state: 'error',
-			message: 'not found'
+			message: 'Paste Not Found !'
 		};
 	}
 
 	if (res.status === 410) {
 		return {
 			state: 'error',
-			message: 'paste expired'
+			message: 'Paste Expired !'
 		};
 	}
 
 	if (!res.ok) {
 		return {
 			state: 'error',
-			message: 'Status: ' + res.status + ' Unknown Error : ' + res.message
+			message: res.message
 		};
 	}
 
@@ -38,45 +42,16 @@ export const load = async ({ params }) => {
 			expires_at: res.expires_at
 		}
 	};
+}
+
+export const load = async ({ params }) => {
+	return resolvePaste(params.slug);
 };
 
 export const actions = {
 	unlock: async ({ request, params }) => {
 		const data = await request.formData();
-		const password = data.get('password')?.toString();
-		const paste = await getPaste(params.slug, password);
 
-		if (paste.status === 401) {
-			return {
-				state: 'wrong_password',
-				message: 'wrong password'
-			};
-		}
-
-		if (paste.status === 404) {
-			return {
-				state: 'error',
-				message: 'not found'
-			};
-		}
-
-		if (paste.status === 410) {
-			return {
-				state: 'error',
-				message: 'paste expired'
-			};
-		}
-
-		if (!paste.ok) {
-			return {
-				state: 'error',
-				message: 'Status: ' + paste.status + ' Unknown Error : ' + paste.message
-			};
-		}
-
-		return {
-			state: 'unlocked',
-			paste
-		};
+		return resolvePaste(params.slug, data.get('password')?.toString(), 'wrong_password');
 	}
 };

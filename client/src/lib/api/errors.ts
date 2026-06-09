@@ -40,7 +40,6 @@ export function handleError(status: number): apiError | apiOk {
 		return {
 			ok: false,
 			status: status,
-
 			message: 'Server Error'
 		};
 	}

@@ -6,8 +6,8 @@ export interface CreatePasteRequest {
 
 export interface CreatePasteResponse {
 	ok: true;
+	status: 200;
 	slug: string;
-	expires_at: string;
 }
 
 export interface GetPasteResponse {

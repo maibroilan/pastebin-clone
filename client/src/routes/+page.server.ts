@@ -13,21 +13,28 @@ export const actions = {
 			return fail(400);
 		}
 
-		const response = await createPaste({
+		const res = await createPaste({
 			content,
 			expiration,
 			password
 		});
 
-		if (!response.ok) {
-			return fail(400, {
-				message: response.message
-			});
+		if (!res.ok) {
+			return {
+				ok: res.ok,
+				status: res.status,
+				message: res.message
+			};
 		}
 
+		// if (!res.ok) {
+		// 	return fail(400, {
+		// 		message: res.message
+		// 	});
+		// }
+
 		return {
-			slug: response.slug,
-			expires_at: response.expires_at
+			slug: res.slug
 		};
 	}
 };

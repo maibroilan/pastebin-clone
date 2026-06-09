@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
+	import PasswordForm from '$lib/components/PasswordForm.svelte';
+	import PasteCard from '$lib/components/PasteCard.svelte';
 
 	let { data, form } = $props();
 
@@ -9,17 +11,13 @@
 </script>
 
 {#if error || state === 'wrong_password'}
-	<p class="error">{error}</p>
+	<ErrorMessage {error} />
 {/if}
 
 {#if state === 'unlocked'}
-	<h1>Paste</h1>
-	<pre>{paste?.content}</pre>
+	<PasteCard content={paste?.content} expires_at={paste?.expires_at} />
 {/if}
 
 {#if state === 'needs_password' || state === 'wrong_password'}
-	<form method="POST" action="?/unlock" use:enhance>
-		<input name="password" type="password" />
-		<button>Unlock</button>
-	</form>
+	<PasswordForm />
 {/if}
