@@ -6,3 +6,6 @@ RETURNING *;
 -- name: GetPaste :one
 SELECT * FROM pastes
 WHERE slug = $1;
+
+-- name: Ping :one
+SELECT 1;

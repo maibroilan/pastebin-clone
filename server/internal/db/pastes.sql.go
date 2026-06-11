@@ -61,3 +61,14 @@ func (q *Queries) GetPaste(ctx context.Context, slug string) (Paste, error) {
 	)
 	return i, err
 }
+
+const ping = `-- name: Ping :one
+SELECT 1
+`
+
+func (q *Queries) Ping(ctx context.Context) (int32, error) {
+	row := q.db.QueryRow(ctx, ping)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}

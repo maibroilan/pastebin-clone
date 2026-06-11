@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/maibroilan/pastebin-clone/server/internal/db"
@@ -107,5 +108,28 @@ func (s *PasteService) Get(ctx context.Context, req model.GetPasteRequest) (*mod
 		Slug:      req.Slug,
 		Content:   paste.Content,
 		ExpiresAt: paste.ExpiresAt,
+	}, nil
+}
+
+func (s *PasteService) PingDB(ctx context.Context) (*model.ReadyCheckResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	_, PostgresErr := s.Queries.Ping(ctx)
+
+	if PostgresErr != nil {
+		return &model.ReadyCheckResponse{
+			Status: "not_ready",
+			Checks: map[string]string{
+				"postgres": "down",
+			},
+		}, PostgresErr
+	}
+
+	return &model.ReadyCheckResponse{
+		Status: "ready",
+		Checks: map[string]string{
+			"postgres": "up",
+		},
 	}, nil
 }

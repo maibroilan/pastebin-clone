@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/maibroilan/pastebin-clone/server/internal/model"
@@ -73,4 +75,24 @@ func (h *PasteHandler) GetPaste(w http.ResponseWriter, r *http.Request) {
 		Content:   paste.Content,
 		ExpiresAt: paste.ExpiresAt.Time,
 	})
+}
+
+func (h *PasteHandler) CheckLive(w http.ResponseWriter, r *http.Request) {
+	WriteJSON(w, 200, model.LiveCheckResponse{
+		Status: "ok",
+	})
+}
+
+func (h *PasteHandler) CheckReady(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+
+	res, err := h.service.PingDB(ctx)
+
+	if err != nil {
+		WriteJSON(w, 503, res)
+		return
+	}
+
+	WriteJSON(w, 200, res)
 }
