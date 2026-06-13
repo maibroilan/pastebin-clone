@@ -23,6 +23,7 @@ client/dist/
 # Go
 server/bin/
 server/coverage.out
+server/api
 
 # Misc
 tmp/

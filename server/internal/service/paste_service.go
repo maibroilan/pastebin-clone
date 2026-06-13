@@ -21,13 +21,19 @@ var (
 	ErrWrongPassword = errors.New("wrong password")
 )
 
-type PasteService struct {
-	Queries db.Queries
+type PasteStore interface {
+	CreatePaste(ctx context.Context, arg db.CreatePasteParams) (db.Paste, error)
+	GetPaste(ctx context.Context, slug string) (db.Paste, error)
+	Ping(ctx context.Context) (int32, error)
 }
 
-func NewPasteService(q db.Queries) *PasteService {
+type PasteService struct {
+	Queries PasteStore
+}
+
+func NewPasteService(ps PasteStore) *PasteService {
 	return &PasteService{
-		Queries: q,
+		Queries: ps,
 	}
 }
 

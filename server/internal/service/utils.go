@@ -10,6 +10,10 @@ import (
 )
 
 func GenerateSlug() (string, error) {
+	// TODO : implement custom slug generation algorithm
+	// 		  like a custom word generator model or a
+	//        CVCVCVCV generator.
+
 	b := make([]byte, 6)
 
 	if _, err := rand.Read(b); err != nil {

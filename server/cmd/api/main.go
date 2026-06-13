@@ -5,6 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,48 +19,71 @@ import (
 	"github.com/maibroilan/pastebin-clone/server/internal/service"
 )
 
-func main() {
-	slog.Info("Starting Server...")
-	ctx := context.Background()
+const (
+	defaultPort            = "8080"
+	defaultDBTimeout       = 10 * time.Second
+	defaultShutdownTimeout = 30 * time.Second
+)
 
-	err := godotenv.Load()
-	if err != nil {
-		slog.Error("Error loading .env file")
+func main() {
+	if err := godotenv.Load(); err != nil {
+		slog.Warn("no .env file found, using environment variables")
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = defaultPort
+	}
+
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		slog.Error("DB_URL environment variable is required")
 		os.Exit(1)
 	}
 
-	pool, err := pgxpool.New(ctx, os.Getenv("DB_URL"))
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDBTimeout)
+	defer cancel()
+
+	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		slog.Error("couldn't initialize db pool", "error", err)
 		os.Exit(1)
 	}
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
+		slog.Error("couldn't connect to database", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("database connection established")
 
 	queries := db.New(pool)
 
-	r := chi.NewRouter()
+	// Router
 
-	// r.Use(middleware.RequestID)
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
 	// r.Use(middleware.RealIP)
-	// TODO: chi session middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(handlers.BodyLimit(1 << 20))
+	r.Use(handlers.BodyLimit(1 << 20)) // 1 MiB
+
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = "http://localhost:5173" // Default for local development
+	}
+
 	r.Use(cors.Handler(cors.Options{
-		// List of allowed origins. Use "*" for development only.
-		AllowedOrigins: []string{"http://localhost:5173"}, // Your SvelteKit dev server
-		// Allowed HTTP methods
-		AllowedMethods: []string{"GET", "POST", "DELETE"},
-		// Allowed headers (include Authorization for tokens, Content-Type for JSON)
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Paste-Password"},
-		// Headers the browser is allowed to access
-		ExposedHeaders: []string{"Link"},
-		// Allow cookies to be sent/received
+		AllowedOrigins:   []string{allowedOrigins},
+		AllowedMethods:   []string{"GET", "POST"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Paste-Password"},
+		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
-		// Cache preflight request result for 5 minutes
-		MaxAge: 300,
+		MaxAge:           300,
 	}))
 
-	p := service.NewPasteService(*queries)
+	p := service.NewPasteService(queries)
 	h := handlers.NewPasteHandler(p)
 
 	r.Route("/pastes", func(r chi.Router) {
@@ -73,6 +99,46 @@ func main() {
 		r.Get("/", h.CheckReady)
 	})
 
-	slog.Info("Server Started on localhost:8080")
-	http.ListenAndServe(":8080", r)
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Graceful shutdown
+
+	serverErrors := make(chan error, 1)
+
+	go func() {
+		slog.Info("server starting", "port", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serverErrors <- err
+		}
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErrors:
+		slog.Error("server failed to start", "error", err)
+		os.Exit(1)
+
+	case sig := <-shutdown:
+		slog.Info("shutdown signal received", "signal", sig)
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
+		defer shutdownCancel()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			slog.Error("graceful shutdown failed", "error", err)
+			if err := server.Close(); err != nil {
+				slog.Error("server close failed", "error", err)
+			}
+		} else {
+			slog.Info("server gracefully stopped")
+		}
+	}
 }

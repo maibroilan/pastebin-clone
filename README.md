@@ -4,11 +4,11 @@ A Pastebin clone with Go and SvelteKit.
 
 ## Features
 
-- Create pastes
-- Expiration dates
-- Optional password protection
-- Rate limiting
-- Shareable links
+- Create Pastes
+- View Pastes
+- Expiration Dates
+- Optional Password Protection
+- Shareable Links
 
 ## Tech Stack
 
@@ -26,4 +26,3 @@ A Pastebin clone with Go and SvelteKit.
 - PostgreSQL
 - pgx
 - sqlc
-- Redis
